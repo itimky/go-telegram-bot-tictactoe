@@ -10,43 +10,54 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func RunServer(token string) error {
+type Server struct {
+	bot *tb.Bot
+}
+
+func NewServer(token string) (Server, error) {
+	server := Server{}
+
 	b, err := tb.NewBot(tb.Settings{
 		Token:  token,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
-
 	if err != nil {
-		return fmt.Errorf("unable to create bot instance: %w", err)
+		return server, fmt.Errorf("unable to create bot instance: %w", err)
 	}
 
-	b.Handle("/start", func(m *tb.Message) {
-		start := time.Now()
-		log.Info("Handling /start being")
-		_, err := b.Send(m.Sender, "Choose player", getChoosePlayerMarkup())
-		if err != nil {
-			log.Error("failed to send response: ", err)
-		}
-		log.WithField("elapsed", time.Since(start).Seconds()).Info("Handling /start end")
-	})
+	server.bot = b
+	b.Handle("/start", server.onStart)
+	b.Handle(tb.OnCallback, server.onCallback)
+	return server, nil
+}
 
-	b.Handle(tb.OnCallback, func(q *tb.Callback) {
-		start := time.Now()
-		log.Info("Handling callback begin")
-		replyMarkup, err := handleCallback(q.Data)
-		log.WithField("elapsed", time.Since(start).Seconds()).Info("callback calculated")
-		if err != nil {
-			log.Error("failed to handle callback: ", err)
-		}
-		if _, err := b.EditReplyMarkup(q.Message, replyMarkup); err != nil {
-			log.Error("failed to send response: ", err)
-		}
-		log.WithField("elapsed", time.Since(start).Seconds()).Info("Handling callback end")
-	})
+func (s Server) Run() {
+	s.bot.Start()
+}
 
-	b.Start()
+func (s Server) onStart(m *tb.Message) {
+	start := time.Now()
+	log.Warn(s)
+	log.Info("Handling /start being")
+	_, err := s.bot.Send(m.Sender, "Choose player", getChoosePlayerMarkup())
+	if err != nil {
+		log.Error("failed to send response: ", err)
+	}
+	log.WithField("elapsed", time.Since(start).Seconds()).Info("Handling /start end")
+}
 
-	return nil
+func (s Server) onCallback(q *tb.Callback) {
+	start := time.Now()
+	log.Info("Handling callback begin")
+	replyMarkup, err := handleCallback(q.Data)
+	log.WithField("elapsed", time.Since(start).Seconds()).Info("callback calculated")
+	if err != nil {
+		log.Error("failed to handle callback: ", err)
+	}
+	if _, err := s.bot.EditReplyMarkup(q.Message, replyMarkup); err != nil {
+		log.Error("failed to send response: ", err)
+	}
+	log.WithField("elapsed", time.Since(start).Seconds()).Info("Handling callback end")
 }
 
 func getChoosePlayerMarkup() *tb.ReplyMarkup {

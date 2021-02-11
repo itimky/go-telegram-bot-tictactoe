@@ -22,10 +22,13 @@ func init() {
 
 func main() {
 	token := os.Getenv("TOKEN")
-	if len(token) == 0 {
+	if token == "" {
 		log.Fatal("Token is not provided")
 	}
-	if err := server.RunServer(token); err != nil {
+
+	srv, err := server.NewServer(token)
+	if err != nil {
 		log.Fatal(err)
 	}
+	srv.Run()
 }
