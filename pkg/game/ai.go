@@ -21,7 +21,7 @@ func NegaScout(game Game, depth int, alpha, beta float64) (float64, error) {
 		if err := possibleGame.MakeMove(move); err != nil {
 			return bestValue, errors.Wrap(err, "failed to calc next move")
 		}
-		possibleGame = possibleGame.SwapPlayers()
+		possibleGame.SwapPlayers()
 
 		moveAlpha, err := NegaScout(possibleGame, depth-1, -beta, -alpha)
 		if err != nil {
@@ -57,7 +57,7 @@ func GetAINextMove(game Game) (Coordinates, error) {
 		if err := possibleGame.MakeMove(move); err != nil {
 			return resultMove, errors.Wrap(err, "failed to calc next move")
 		}
-		possibleGame = possibleGame.SwapPlayers()
+		possibleGame.SwapPlayers()
 		moveAlpha, err := NegaScout(possibleGame, depth-1, -beta, -alpha)
 		if err != nil {
 			return resultMove, errors.Wrap(err, "failed to calc further steps")

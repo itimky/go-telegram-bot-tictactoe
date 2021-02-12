@@ -31,11 +31,12 @@ func StartNewGame(player Mark) (Game, error) {
 		player:   player,
 		opponent: getOpponent(player),
 	}
-	if game.IsAIFirst() {
+	if game.isAIFirst() {
+		game.SwapPlayers()
 		if err := game.MakeAIMove(); err != nil {
 			return game, errors.Wrap(err, "failed to start game")
 		}
-		game = game.SwapPlayers()
+		game.SwapPlayers()
 	}
 
 	return game, nil
@@ -50,11 +51,11 @@ func (g *Game) PlayRound(coords Coordinates) error {
 		return errors.Wrap(err, "failed to make move")
 	}
 	if !g.IsOver() {
-		*g = g.SwapPlayers()
+		g.SwapPlayers()
 		if err := g.MakeAIMove(); err != nil {
 			return errors.Wrap(err, "failed to make ai move")
 		}
-		*g = g.SwapPlayers()
+		g.SwapPlayers()
 	}
 	return nil
 }
@@ -110,13 +111,11 @@ func (g *Game) GetScore() float64 {
 	return score
 }
 
-func (g *Game) SwapPlayers() Game {
-	swapped := *g
-	swapped.player, swapped.opponent = swapped.opponent, swapped.player
-	return swapped
+func (g *Game) SwapPlayers() {
+	g.player, g.opponent = g.opponent, g.player
 }
 
-func (g *Game) IsAIFirst() bool {
+func (g *Game) isAIFirst() bool {
 	return g.player == MarkO
 }
 
