@@ -14,28 +14,25 @@ type Server struct {
 	bot *tb.Bot
 }
 
-func NewServer(token string) (Server, error) {
-	server := Server{}
-
+func NewServer(token string) (*Server, error) {
 	b, err := tb.NewBot(tb.Settings{
 		Token:  token,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {
-		return server, fmt.Errorf("unable to create bot instance: %w", err)
+		return nil, fmt.Errorf("unable to create bot instance: %w", err)
 	}
-
-	server.bot = b
+	server := Server{bot: b}
 	b.Handle("/start", server.onStart)
 	b.Handle(tb.OnCallback, server.onCallback)
-	return server, nil
+	return &server, nil
 }
 
-func (s Server) Run() {
+func (s *Server) Run() {
 	s.bot.Start()
 }
 
-func (s Server) onStart(m *tb.Message) {
+func (s *Server) onStart(m *tb.Message) {
 	start := time.Now()
 	log.Warn(s)
 	log.Info("Handling /start being")
@@ -46,7 +43,7 @@ func (s Server) onStart(m *tb.Message) {
 	log.WithField("elapsed", time.Since(start).Seconds()).Info("Handling /start end")
 }
 
-func (s Server) onCallback(q *tb.Callback) {
+func (s *Server) onCallback(q *tb.Callback) {
 	start := time.Now()
 	log.Info("Handling callback begin")
 	replyMarkup, err := handleCallback(q.Data)
