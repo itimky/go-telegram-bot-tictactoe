@@ -15,40 +15,48 @@ const (
 	Hard   = 2
 )
 
-type AI struct {
-	difficulty Difficulty
+type AIGame struct {
+	Game       game.Game
+	Difficulty Difficulty
 }
 
-func (a AI) PlayOpponent(g *game.Game) error {
-	if g.IsOver() {
+func (aig *AIGame) MakeAIMove() error {
+	if aig.Game.IsOver() {
 		return nil
 	}
 
-	var move game.Coordinates
+	var move game.Move
 	var err error
-	switch a.difficulty {
+	switch aig.Difficulty {
 	case Easy:
 		return errors.Errorf("Easy difficulty is not supported")
 	case Medium:
 		return errors.Errorf("Medium difficulty is not supported")
 	case Hard:
-		move, err = algorithms.GetNextMoveNegaScout(*g)
+		move, err = algorithms.GetNextMoveNegaScout(aig.Game)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	g.SwapPlayers()
-	if err = g.MakeMove(move); err != nil {
+	aig.Game.SwapPlayers()
+	if err = aig.Game.MakeMove(move); err != nil {
 		return err
 	}
-	g.SwapPlayers()
+	aig.Game.SwapPlayers()
 	return nil
 }
 
-func NewAI(dif Difficulty) AI {
-	return AI{
-		difficulty: dif,
+func StartAIGame(dif Difficulty, player game.Mark) (*AIGame, error) {
+	aiGame := AIGame{
+		Game:       game.NewGame(player),
+		Difficulty: dif,
 	}
+	if !aiGame.Game.IsPlayerFirst() {
+		if err := aiGame.MakeAIMove(); err != nil {
+			return nil, errors.Wrap(err, "failed to play AI opponent")
+		}
+	}
+	return &aiGame, nil
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Coordinates struct {
+type Move struct {
 	I int
 	J int
 }
@@ -17,15 +17,15 @@ type Game struct {
 	opponent Mark
 }
 
-func NewGame(player Mark) *Game {
-	return &Game{
+func NewGame(player Mark) Game {
+	return Game{
 		player:   player,
 		opponent: getOpponent(player),
 	}
 }
 
-func ContinueGame(player Mark, board Board) *Game {
-	return &Game{
+func ContinueGame(player Mark, board Board) Game {
+	return Game{
 		player:   player,
 		opponent: getOpponent(player),
 		board:    board,
@@ -44,12 +44,12 @@ func (g *Game) GetPlayer() Mark {
 	return g.player
 }
 
-func (g *Game) GetPossibleMoves() []Coordinates {
-	moves := make([]Coordinates, 0, g.board.Size())
+func (g *Game) GetPossibleMoves() []Move {
+	moves := make([]Move, 0, g.board.Size())
 	for i := range g.board {
 		for j := range g.board[i] {
 			if g.board[i][j] == MarkEmpty {
-				moves = append(moves, Coordinates{I: i, J: j})
+				moves = append(moves, Move{I: i, J: j})
 			}
 		}
 	}
@@ -99,7 +99,7 @@ func (g *Game) isAIFirst() bool {
 	return g.player == MarkO
 }
 
-func (g *Game) MakeMove(c Coordinates) error {
+func (g *Game) MakeMove(c Move) error {
 	if err := g.board.PlaceMark(c.I, c.J, g.player); err != nil {
 		return errors.Wrap(err, "failed to place mark")
 	}

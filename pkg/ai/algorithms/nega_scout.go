@@ -4,26 +4,24 @@ import (
 	"math"
 	"sync"
 
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
+	"github.com/pkg/errors"
 )
 
 const initialDepth int = 8
 
 type MoveCache struct {
 	mx    sync.RWMutex
-	cache map[game.Game]game.Coordinates
+	cache map[game.Game]game.Move
 }
 
-func (mc *MoveCache) Store(g game.Game, c game.Coordinates) {
+func (mc *MoveCache) Store(g game.Game, c game.Move) {
 	mc.mx.Lock()
 	defer mc.mx.Unlock()
 	mc.cache[g] = c
 }
 
-func (mc *MoveCache) Load(g game.Game) (game.Coordinates, bool) {
+func (mc *MoveCache) Load(g game.Game) (game.Move, bool) {
 	mc.mx.RLock()
 	defer mc.mx.RUnlock()
 	c, ok := mc.cache[g]
@@ -32,7 +30,7 @@ func (mc *MoveCache) Load(g game.Game) (game.Coordinates, bool) {
 
 func NewMoveCache() *MoveCache {
 	return &MoveCache{
-		cache: make(map[game.Game]game.Coordinates),
+		cache: make(map[game.Game]game.Move),
 	}
 }
 
@@ -68,11 +66,11 @@ func NegaScout(g game.Game, depth int, alpha, beta float64) (float64, error) {
 	return bestValue, nil
 }
 
-func GetNextMoveNegaScout(g game.Game) (game.Coordinates, error) {
-	if move, ok := nextMoveCache.Load(g); ok {
-		log.Info("Move cache used")
-		return move, nil
-	}
+func GetNextMoveNegaScout(g game.Game) (game.Move, error) {
+	//if move, ok := nextMoveCache.Load(g); ok {
+	//	log.Info("Move cache used")
+	//	return move, nil
+	//}
 
 	possibleMoves := g.GetPossibleMoves()
 	resultMove := possibleMoves[0]
