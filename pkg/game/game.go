@@ -17,47 +17,23 @@ type Game struct {
 	opponent Mark
 }
 
-func NewGame(player Mark, board Board) Game {
-	game := Game{
+func NewGame(player Mark) *Game {
+	return &Game{
+		player:   player,
+		opponent: getOpponent(player),
+	}
+}
+
+func ContinueGame(player Mark, board Board) *Game {
+	return &Game{
 		player:   player,
 		opponent: getOpponent(player),
 		board:    board,
 	}
-	return game
-}
-
-func StartNewGame(player Mark) (Game, error) {
-	game := Game{
-		player:   player,
-		opponent: getOpponent(player),
-	}
-	if game.isAIFirst() {
-		game.SwapPlayers()
-		if err := game.MakeAIMove(); err != nil {
-			return game, errors.Wrap(err, "failed to start game")
-		}
-		game.SwapPlayers()
-	}
-
-	return game, nil
 }
 
 func getOpponent(player Mark) Mark {
 	return MarkX ^ MarkO ^ player
-}
-
-func (g *Game) PlayRound(coords Coordinates) error {
-	if err := g.MakeMove(coords); err != nil {
-		return errors.Wrap(err, "failed to make move")
-	}
-	if !g.IsOver() {
-		g.SwapPlayers()
-		if err := g.MakeAIMove(); err != nil {
-			return errors.Wrap(err, "failed to make ai move")
-		}
-		g.SwapPlayers()
-	}
-	return nil
 }
 
 func (g *Game) GetBoard() Board {
@@ -115,20 +91,12 @@ func (g *Game) SwapPlayers() {
 	g.player, g.opponent = g.opponent, g.player
 }
 
-func (g *Game) isAIFirst() bool {
-	return g.player == MarkO
+func (g *Game) IsPlayerFirst() bool {
+	return g.player == MarkX
 }
 
-func (g *Game) MakeAIMove() error {
-	move, err := GetAINextMove(*g)
-	if err != nil {
-		return errors.Wrap(err, "failed to get AI next move")
-	}
-
-	if err = g.MakeMove(move); err != nil {
-		return errors.Wrap(err, "failed to make move")
-	}
-	return nil
+func (g *Game) isAIFirst() bool {
+	return g.player == MarkO
 }
 
 func (g *Game) MakeMove(c Coordinates) error {

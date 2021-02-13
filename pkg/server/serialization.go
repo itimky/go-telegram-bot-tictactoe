@@ -2,10 +2,12 @@ package server
 
 import (
 	"fmt"
-	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
-	"github.com/pkg/errors"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
+
+	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 )
 
 func GetCoordinatesFromString(data string) (game.Coordinates, error) {

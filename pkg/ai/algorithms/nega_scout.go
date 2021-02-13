@@ -1,4 +1,4 @@
-package game
+package algorithms
 
 import (
 	"math"
@@ -6,22 +6,24 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 )
 
 const initialDepth int = 8
 
 type MoveCache struct {
 	mx    sync.RWMutex
-	cache map[Game]Coordinates
+	cache map[game.Game]game.Coordinates
 }
 
-func (mc *MoveCache) Store(g Game, c Coordinates) {
+func (mc *MoveCache) Store(g game.Game, c game.Coordinates) {
 	mc.mx.Lock()
 	defer mc.mx.Unlock()
 	mc.cache[g] = c
 }
 
-func (mc *MoveCache) Load(g Game) (Coordinates, bool) {
+func (mc *MoveCache) Load(g game.Game) (game.Coordinates, bool) {
 	mc.mx.RLock()
 	defer mc.mx.RUnlock()
 	c, ok := mc.cache[g]
@@ -30,20 +32,20 @@ func (mc *MoveCache) Load(g Game) (Coordinates, bool) {
 
 func NewMoveCache() *MoveCache {
 	return &MoveCache{
-		cache: make(map[Game]Coordinates),
+		cache: make(map[game.Game]game.Coordinates),
 	}
 }
 
 var nextMoveCache = NewMoveCache()
 
-func NegaScout(game Game, depth int, alpha, beta float64) (float64, error) {
-	if depth == 0 || game.IsOver() {
-		return game.GetScore(), nil
+func NegaScout(g game.Game, depth int, alpha, beta float64) (float64, error) {
+	if depth == 0 || g.IsOver() {
+		return g.GetScore(), nil
 	}
 
 	bestValue := math.Inf(-1)
-	for _, move := range game.GetPossibleMoves() {
-		possibleGame := game
+	for _, move := range g.GetPossibleMoves() {
+		possibleGame := g
 		if err := possibleGame.MakeMove(move); err != nil {
 			return bestValue, errors.Wrap(err, "failed to calc next move")
 		}
@@ -66,20 +68,20 @@ func NegaScout(game Game, depth int, alpha, beta float64) (float64, error) {
 	return bestValue, nil
 }
 
-func GetAINextMove(game Game) (Coordinates, error) {
-	if move, ok := nextMoveCache.Load(game); ok {
+func GetNextMoveNegaScout(g game.Game) (game.Coordinates, error) {
+	if move, ok := nextMoveCache.Load(g); ok {
 		log.Info("Move cache used")
 		return move, nil
 	}
 
-	possibleMoves := game.GetPossibleMoves()
+	possibleMoves := g.GetPossibleMoves()
 	resultMove := possibleMoves[0]
 	alpha := math.Inf(-1)
 	beta := math.Inf(1)
 	depth := initialDepth
 
 	for _, move := range possibleMoves {
-		possibleGame := game
+		possibleGame := g
 		if err := possibleGame.MakeMove(move); err != nil {
 			return resultMove, errors.Wrap(err, "failed to calc next move")
 		}
@@ -95,6 +97,6 @@ func GetAINextMove(game Game) (Coordinates, error) {
 		}
 	}
 
-	nextMoveCache.Store(game, resultMove)
+	nextMoveCache.Store(g, resultMove)
 	return resultMove, nil
 }

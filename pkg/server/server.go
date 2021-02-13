@@ -2,12 +2,14 @@ package server
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
+	"github.com/itimky/go-telegram-bot-tictactoe/pkg/ai"
 	"time"
 
-	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
+
+	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 )
 
 type Server struct {
@@ -94,9 +96,12 @@ func startGame(data string) (*tb.ReplyMarkup, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get mark from string")
 	}
-	g, err := game.StartNewGame(playerMark)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to start new game")
+	g := game.NewGame(playerMark)
+	if !g.IsPlayerFirst() {
+		aiPlayer := ai.NewAI(ai.Hard)
+		if err = aiPlayer.PlayOpponent(g); err != nil {
+			return nil, errors.Wrap(err, "failed to play AI opponent")
+		}
 	}
 	return getGameMarkup(g), nil
 }
@@ -110,15 +115,18 @@ func playRound(data string) (*tb.ReplyMarkup, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get board")
 	}
-	g := game.NewGame(player, board)
-	if err = g.PlayRound(coords); err != nil {
-		return nil, errors.Wrap(err, "failed to play round")
+	g := game.ContinueGame(player, board)
+	if err := g.MakeMove(coords); err != nil {
+		return nil, errors.Wrap(err, "failed to make move")
 	}
-
+	aiPlayer := ai.NewAI(ai.Hard)
+	if err = aiPlayer.PlayOpponent(g); err != nil {
+		return nil, errors.Wrap(err, "failed to play AI opponent")
+	}
 	return getGameMarkup(g), nil
 }
 
-func getGameMarkup(g game.Game) *tb.ReplyMarkup {
+func getGameMarkup(g *game.Game) *tb.ReplyMarkup {
 	board := g.GetBoard()
 	player := g.GetPlayer()
 	boardDump := BoardToString(board)
