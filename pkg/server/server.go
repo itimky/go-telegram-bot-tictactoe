@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"github.com/go-redis/redis/v8"
 	"time"
 
 	"github.com/pkg/errors"
@@ -10,24 +10,35 @@ import (
 
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/ai"
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
+	"github.com/itimky/go-telegram-bot-tictactoe/pkg/server/storage"
 )
 
 type Server struct {
 	bot         *tb.Bot
-	gameStorage *GameStorage
+	gameStorage storage.IGameStorage
 }
 
-func NewServer(token string) (*Server, error) {
+func NewServer(token string, redisClient *redis.Client) (*Server, error) {
+	var gameStorage storage.IGameStorage
+	if redisClient != nil {
+		gameStorage = storage.NewGameRedisStorage(redisClient)
+		log.Info("using redis game storage")
+	} else {
+		gameStorage = storage.NewGameAppStorage()
+		log.Info("using app game storage")
+	}
+
 	b, err := tb.NewBot(tb.Settings{
 		Token:  token,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to create bot instance: %w", err)
+		return nil, errors.Wrap(err, "unable to create bot instance")
 	}
+
 	server := Server{
 		bot:         b,
-		gameStorage: NewGameStorage(),
+		gameStorage: gameStorage,
 	}
 	b.Handle("/start", server.onStart)
 	b.Handle(tb.OnCallback, server.onCallback)
@@ -51,7 +62,8 @@ func (s *Server) onStart(m *tb.Message) {
 func (s *Server) onCallback(q *tb.Callback) {
 	start := time.Now()
 	log.Info("Handling callback begin")
-	replyMarkup, err := s.handleCallback(q.MessageID, q.Data)
+	log.Info("Callback: ", *q)
+	replyMarkup, err := s.handleCallback(q.Message.ID, q.Data)
 	log.WithField("elapsed", time.Since(start).Seconds()).Info("callback calculated")
 	if err != nil {
 		log.Error("failed to handle callback: ", err)
@@ -62,7 +74,7 @@ func (s *Server) onCallback(q *tb.Callback) {
 	log.WithField("elapsed", time.Since(start).Seconds()).Info("Handling callback end")
 }
 
-func (s *Server) handleCallback(msgID, data string) (*tb.ReplyMarkup, error) {
+func (s *Server) handleCallback(msgID int, data string) (*tb.ReplyMarkup, error) {
 	if len(data) == 1 {
 		markup, err := s.startGame(msgID, data)
 		if err != nil {
@@ -77,7 +89,7 @@ func (s *Server) handleCallback(msgID, data string) (*tb.ReplyMarkup, error) {
 	return markup, nil
 }
 
-func (s *Server) startGame(msgID, data string) (*tb.ReplyMarkup, error) {
+func (s *Server) startGame(msgID int, data string) (*tb.ReplyMarkup, error) {
 	playerMark, err := GetMarkFromString(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get mark from string")
@@ -93,7 +105,7 @@ func (s *Server) startGame(msgID, data string) (*tb.ReplyMarkup, error) {
 	return getGameMarkup(aiGame.Game), nil
 }
 
-func (s *Server) playRound(msgID, data string) (*tb.ReplyMarkup, error) {
+func (s *Server) playRound(msgID int, data string) (*tb.ReplyMarkup, error) {
 	aiGame, err := s.gameStorage.Load(msgID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load game")

@@ -1,4 +1,4 @@
-package server
+package storage
 
 import (
 	"sync"
@@ -8,12 +8,12 @@ import (
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/ai"
 )
 
-type GameStorage struct {
+type GameAppStorage struct {
 	mx    sync.RWMutex
-	games map[string]ai.AIGame
+	games map[int]ai.AIGame
 }
 
-func (gs *GameStorage) Load(msgID string) (ai.AIGame, error) {
+func (gs *GameAppStorage) Load(msgID int) (ai.AIGame, error) {
 	gs.mx.RLock()
 	defer gs.mx.RUnlock()
 	g, ok := gs.games[msgID]
@@ -23,15 +23,15 @@ func (gs *GameStorage) Load(msgID string) (ai.AIGame, error) {
 	return g, nil
 }
 
-func (gs *GameStorage) Save(msgID string, g ai.AIGame) error {
+func (gs *GameAppStorage) Save(msgID int, g ai.AIGame) error {
 	gs.mx.Lock()
 	defer gs.mx.Unlock()
 	gs.games[msgID] = g
 	return nil
 }
 
-func NewGameStorage() *GameStorage {
-	return &GameStorage{
-		games: make(map[string]ai.AIGame),
+func NewGameAppStorage() *GameAppStorage {
+	return &GameAppStorage{
+		games: make(map[int]ai.AIGame),
 	}
 }
