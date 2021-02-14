@@ -4,8 +4,10 @@ import (
 	"math"
 	"sync"
 
-	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 )
 
 const initialDepth int = 8
@@ -36,7 +38,7 @@ func NewMoveCache() *MoveCache {
 
 var nextMoveCache = NewMoveCache()
 
-func NegaScout(g game.Game, depth int, alpha, beta float64) (float64, error) {
+func negaScoutRecursive(g game.Game, depth int, alpha, beta float64) (float64, error) {
 	if depth == 0 || g.IsOver() {
 		return g.GetScore(), nil
 	}
@@ -49,7 +51,7 @@ func NegaScout(g game.Game, depth int, alpha, beta float64) (float64, error) {
 		}
 		possibleGame.SwapPlayers()
 
-		moveAlpha, err := NegaScout(possibleGame, depth-1, -beta, -alpha)
+		moveAlpha, err := negaScoutRecursive(possibleGame, depth-1, -beta, -alpha)
 		if err != nil {
 			return bestValue, errors.Wrap(err, "failed to calc further steps")
 		}
@@ -67,10 +69,10 @@ func NegaScout(g game.Game, depth int, alpha, beta float64) (float64, error) {
 }
 
 func GetNextMoveNegaScout(g game.Game) (game.Move, error) {
-	//if move, ok := nextMoveCache.Load(g); ok {
-	//	log.Info("Move cache used")
-	//	return move, nil
-	//}
+	if move, ok := nextMoveCache.Load(g); ok {
+		log.Info("Move cache used")
+		return move, nil
+	}
 
 	possibleMoves := g.GetPossibleMoves()
 	resultMove := possibleMoves[0]
@@ -84,7 +86,7 @@ func GetNextMoveNegaScout(g game.Game) (game.Move, error) {
 			return resultMove, errors.Wrap(err, "failed to calc next move")
 		}
 		possibleGame.SwapPlayers()
-		moveAlpha, err := NegaScout(possibleGame, depth-1, -beta, -alpha)
+		moveAlpha, err := negaScoutRecursive(possibleGame, depth-1, -beta, -alpha)
 		if err != nil {
 			return resultMove, errors.Wrap(err, "failed to calc further steps")
 		}
