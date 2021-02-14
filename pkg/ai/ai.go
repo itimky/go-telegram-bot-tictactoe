@@ -69,7 +69,7 @@ func StartAIGame(dif Difficulty, player game.Mark) (AIGame, error) {
 		Game:       game.NewGame(player),
 		Difficulty: dif,
 	}
-	if !aiGame.Game.IsPlayerFirst() {
+	if aiGame.Game.GetPlayer() != game.MarkX {
 		if err := aiGame.MakeAIMove(); err != nil {
 			return aiGame, errors.Wrap(err, "failed to play AI opponent")
 		}

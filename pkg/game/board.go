@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 )
 
 type Mark byte
@@ -18,7 +17,6 @@ const (
 
 func (b *Board) PlaceMark(i, j int, mark Mark) error {
 	if b[i][j] != MarkEmpty {
-		log.Errorf("failed to place mark on board %v", *b)
 		return fmt.Errorf("square (%v; %v) is not empty", i, j)
 	}
 	b[i][j] = mark

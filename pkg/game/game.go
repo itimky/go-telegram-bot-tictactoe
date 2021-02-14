@@ -91,14 +91,6 @@ func (g *Game) SwapPlayers() {
 	g.player, g.opponent = g.opponent, g.player
 }
 
-func (g *Game) IsPlayerFirst() bool {
-	return g.player == MarkX
-}
-
-func (g *Game) isAIFirst() bool {
-	return g.player == MarkO
-}
-
 func (g *Game) MakeMove(c Move) error {
 	if err := g.board.PlaceMark(c.I, c.J, g.player); err != nil {
 		return errors.Wrap(err, "failed to place mark")
