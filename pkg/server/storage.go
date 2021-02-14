@@ -13,20 +13,20 @@ type GameStorage struct {
 	games map[string]ai.AIGame
 }
 
-func (gs *GameStorage) Load(msgID string) (*ai.AIGame, error) {
+func (gs *GameStorage) Load(msgID string) (ai.AIGame, error) {
 	gs.mx.RLock()
 	defer gs.mx.RUnlock()
 	g, ok := gs.games[msgID]
 	if !ok {
-		return nil, errors.New("game not found")
+		return g, errors.New("game not found")
 	}
-	return &g, nil
+	return g, nil
 }
 
-func (gs *GameStorage) Save(msgID string, g *ai.AIGame) error {
+func (gs *GameStorage) Save(msgID string, g ai.AIGame) error {
 	gs.mx.Lock()
 	defer gs.mx.Unlock()
-	gs.games[msgID] = *g
+	gs.games[msgID] = g
 	return nil
 }
 

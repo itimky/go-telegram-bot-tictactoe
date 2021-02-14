@@ -48,15 +48,15 @@ func (aig *AIGame) MakeAIMove() error {
 	return nil
 }
 
-func StartAIGame(dif Difficulty, player game.Mark) (*AIGame, error) {
+func StartAIGame(dif Difficulty, player game.Mark) (AIGame, error) {
 	aiGame := AIGame{
 		Game:       game.NewGame(player),
 		Difficulty: dif,
 	}
 	if !aiGame.Game.IsPlayerFirst() {
 		if err := aiGame.MakeAIMove(); err != nil {
-			return nil, errors.Wrap(err, "failed to play AI opponent")
+			return aiGame, errors.Wrap(err, "failed to play AI opponent")
 		}
 	}
-	return &aiGame, nil
+	return aiGame, nil
 }
