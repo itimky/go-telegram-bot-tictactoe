@@ -58,8 +58,10 @@ func (ns NegaScout) GetNextMove(g game.Game) (game.Move, error) {
 
 func (ns NegaScout) getNextMove(g game.Game) (game.Move, error) {
 	if move, ok := ns.nextMoveCache.Load(g); ok {
-		log.Info("Move cache used")
+		log.Debug("Move cache used")
 		return move, nil
+	} else {
+		log.Debug("Move cache miss")
 	}
 
 	possibleMoves := g.GetPossibleMoves()

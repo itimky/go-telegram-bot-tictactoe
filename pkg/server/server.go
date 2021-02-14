@@ -62,9 +62,8 @@ func (s *Server) onStart(m *tb.Message) {
 func (s *Server) onCallback(q *tb.Callback) {
 	start := time.Now()
 	log.Info("Handling callback begin")
-	log.Info("Callback: ", *q)
+	log.Debug("Callback: ", *q)
 	replyMarkup, err := s.handleCallback(q.Message.ID, q.Data)
-	log.WithField("elapsed", time.Since(start).Seconds()).Info("callback calculated")
 	if err != nil {
 		log.Error("failed to handle callback: ", err)
 	}

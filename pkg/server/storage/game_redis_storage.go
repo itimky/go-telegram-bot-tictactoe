@@ -36,7 +36,7 @@ type GameRedisStorage struct {
 }
 
 func (gs *GameRedisStorage) Load(msgID int) (ai.AIGame, error) {
-	log.Info("Loading game ", msgID)
+	log.Debug("Loading game ", msgID)
 	key := makeKey(strconv.Itoa(msgID))
 	val, err := gs.client.Get(context.Background(), key).Result()
 	g := ai.AIGame{}
@@ -58,7 +58,7 @@ func (gs *GameRedisStorage) Load(msgID int) (ai.AIGame, error) {
 }
 
 func (gs *GameRedisStorage) Save(msgID int, g ai.AIGame) error {
-	log.Info("Saving game ", msgID)
+	log.Debug("Saving game ", msgID)
 	key := makeKey(strconv.Itoa(msgID))
 	val, err := marshalGameToRedis(g)
 	if err != nil {
@@ -83,7 +83,7 @@ func marshalGameToRedis(g ai.AIGame) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal game")
 	}
-	log.Info("Marshaled game container: ", string(val))
+	log.Debug("Marshaled game container: ", string(val))
 	return val, nil
 }
 
@@ -94,7 +94,7 @@ func unmarshalGameFromRedis(data []byte) (ai.AIGame, error) {
 	if err := json.Unmarshal(data, &container); err != nil {
 		return aiGame, errors.Wrap(err, "failed to unmarshal redis data")
 	}
-	log.Info("Unmarshaled game container: ", container)
+	log.Debug("Unmarshaled game container: ", container)
 
 	aiGame.Game = game.ContinueGame(container.Game.Player, container.Game.Board)
 	aiGame.Difficulty = container.Difficulty
