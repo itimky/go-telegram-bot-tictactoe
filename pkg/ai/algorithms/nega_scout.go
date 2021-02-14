@@ -3,6 +3,7 @@ package algorithms
 import (
 	"math"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -10,7 +11,7 @@ import (
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 )
 
-const initialDepth int = 8
+const initialDepth byte = 8
 
 type MoveCache struct {
 	mx    sync.RWMutex
@@ -36,40 +37,27 @@ func NewMoveCache() *MoveCache {
 	}
 }
 
-var nextMoveCache = NewMoveCache()
-
-func negaScoutRecursive(g game.Game, depth int, alpha, beta float64) (float64, error) {
-	if depth == 0 || g.IsOver() {
-		return g.GetScore(), nil
-	}
-
-	bestValue := math.Inf(-1)
-	for _, move := range g.GetPossibleMoves() {
-		possibleGame := g
-		if err := possibleGame.MakeMove(move); err != nil {
-			return bestValue, errors.Wrap(err, "failed to calc next move")
-		}
-		possibleGame.SwapPlayers()
-
-		moveAlpha, err := negaScoutRecursive(possibleGame, depth-1, -beta, -alpha)
-		if err != nil {
-			return bestValue, errors.Wrap(err, "failed to calc further steps")
-		}
-		moveAlpha = -moveAlpha
-		bestValue = math.Max(bestValue, moveAlpha)
-		if alpha < moveAlpha {
-			alpha = moveAlpha
-			if alpha >= beta {
-				break
-			}
-		}
-	}
-
-	return bestValue, nil
+type NegaScout struct {
+	initialDepth  byte
+	nextMoveCache *MoveCache
 }
 
-func GetNextMoveNegaScout(g game.Game) (game.Move, error) {
-	if move, ok := nextMoveCache.Load(g); ok {
+func NewNegaScout() NegaScout {
+	return NegaScout{
+		initialDepth:  initialDepth,
+		nextMoveCache: NewMoveCache(),
+	}
+}
+
+func (ns NegaScout) GetNextMove(g game.Game) (game.Move, error) {
+	start := time.Now()
+	move, err := ns.getNextMove(g)
+	log.Debug("NegaScout.GetNextMove elapsed: ", time.Since(start).Seconds())
+	return move, err
+}
+
+func (ns NegaScout) getNextMove(g game.Game) (game.Move, error) {
+	if move, ok := ns.nextMoveCache.Load(g); ok {
 		log.Info("Move cache used")
 		return move, nil
 	}
@@ -86,7 +74,7 @@ func GetNextMoveNegaScout(g game.Game) (game.Move, error) {
 			return resultMove, errors.Wrap(err, "failed to calc next move")
 		}
 		possibleGame.SwapPlayers()
-		moveAlpha, err := negaScoutRecursive(possibleGame, depth-1, -beta, -alpha)
+		moveAlpha, err := ns.getBestScoreRecursive(possibleGame, depth-1, -beta, -alpha)
 		if err != nil {
 			return resultMove, errors.Wrap(err, "failed to calc further steps")
 		}
@@ -97,6 +85,36 @@ func GetNextMoveNegaScout(g game.Game) (game.Move, error) {
 		}
 	}
 
-	nextMoveCache.Store(g, resultMove)
+	ns.nextMoveCache.Store(g, resultMove)
 	return resultMove, nil
+}
+
+func (ns NegaScout) getBestScoreRecursive(g game.Game, depth byte, alpha, beta float64) (float64, error) {
+	if depth == 0 || g.IsOver() {
+		return g.GetScore(), nil
+	}
+
+	bestValue := math.Inf(-1)
+	for _, move := range g.GetPossibleMoves() {
+		possibleGame := g
+		if err := possibleGame.MakeMove(move); err != nil {
+			return bestValue, errors.Wrap(err, "failed to calc next move")
+		}
+		possibleGame.SwapPlayers()
+
+		moveAlpha, err := ns.getBestScoreRecursive(possibleGame, depth-1, -beta, -alpha)
+		if err != nil {
+			return bestValue, errors.Wrap(err, "failed to calc further steps")
+		}
+		moveAlpha = -moveAlpha
+		bestValue = math.Max(bestValue, moveAlpha)
+		if alpha < moveAlpha {
+			alpha = moveAlpha
+			if alpha >= beta {
+				break
+			}
+		}
+	}
+
+	return bestValue, nil
 }

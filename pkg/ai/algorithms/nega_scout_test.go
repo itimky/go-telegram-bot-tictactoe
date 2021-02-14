@@ -9,6 +9,7 @@ import (
 
 func Benchmark_NegaScout(b *testing.B) {
 	g := game.NewGame(game.MarkX)
-	_, err := GetNextMoveNegaScout(g)
+	negaScout := NewNegaScout()
+	_, err := negaScout.GetNextMove(g)
 	assert.NoError(b, err)
 }

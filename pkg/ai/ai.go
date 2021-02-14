@@ -15,6 +15,28 @@ const (
 	Hard   = 2
 )
 
+var difficultyNames = map[Difficulty]string{
+	Easy:   "Easy",
+	Medium: "Medium",
+	Hard:   "Hard",
+}
+
+var algoMap = map[Difficulty]algorithms.IAlgorithm{
+	Hard: algorithms.NewNegaScout(),
+}
+
+func getAlgorithm(dif Difficulty) (algorithms.IAlgorithm, error) {
+	algo, ok := algoMap[dif]
+	if !ok {
+		difName, ok := difficultyNames[dif]
+		if !ok {
+			return nil, errors.Errorf("unknown difficulty code %v", dif)
+		}
+		return nil, errors.Errorf("%v difficulty is not supported", difName)
+	}
+	return algo, nil
+}
+
 type AIGame struct {
 	Game       game.Game
 	Difficulty Difficulty
@@ -25,24 +47,18 @@ func (aig *AIGame) MakeAIMove() error {
 		return nil
 	}
 
-	var move game.Move
-	var err error
-	switch aig.Difficulty {
-	case Easy:
-		return errors.Errorf("Easy difficulty is not supported")
-	case Medium:
-		return errors.Errorf("Medium difficulty is not supported")
-	case Hard:
-		move, err = algorithms.GetNextMoveNegaScout(aig.Game)
-	}
-
+	algo, err := getAlgorithm(aig.Difficulty)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get algorithm")
+	}
+	move, err := algo.GetNextMove(aig.Game)
+	if err != nil {
+		return errors.Wrap(err, "failed to get next move")
 	}
 
 	aig.Game.SwapPlayers()
 	if err = aig.Game.MakeMove(move); err != nil {
-		return err
+		return errors.Wrap(err, "failed to make move")
 	}
 	aig.Game.SwapPlayers()
 	return nil
