@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Mark uint8
+type Mark byte
 
 type Line [3]Mark
 type Board [3]Line
