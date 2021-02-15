@@ -31,7 +31,7 @@ type Service struct {
 func (s *Service) New(sessionID int, player game.Mark, dif ai.Difficulty) (game.Game, error) {
 	session := &session{
 		id:         sessionID,
-		game:       game.NewGame(player),
+		game:       game.NewGame(player, 3),
 		gameType:   GameTypeVersusAI,
 		difficulty: dif,
 	}

@@ -23,6 +23,7 @@ func makeKey(key string) string {
 
 type gameContainer struct {
 	Board  game.Board `json:"board"`
+	N      int        `json:"n"`
 	Player game.Mark  `json:"player"`
 }
 
@@ -79,6 +80,7 @@ func marshalGameToRedis(session *session) ([]byte, error) {
 		Type:       session.gameType,
 		Game: gameContainer{
 			Board:  session.game.GetBoard(),
+			N:      session.game.Size(),
 			Player: session.game.GetPlayer(),
 		},
 	}
@@ -99,7 +101,7 @@ func unmarshalGameFromRedis(data []byte) (*session, error) {
 
 	session := session{
 		id:         container.ID,
-		game:       game.ContinueGame(container.Game.Player, container.Game.Board),
+		game:       game.ContinueGame(container.Game.Player, container.Game.Board, container.Game.N),
 		difficulty: container.Difficulty,
 		gameType:   container.Type,
 	}
