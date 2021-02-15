@@ -15,20 +15,28 @@ const (
 	Hard   = 2
 )
 
-var difficultyNames = map[Difficulty]string{
-	Easy:   "Easy",
-	Medium: "Medium",
-	Hard:   "Hard",
+type AI struct {
+	algos           map[Difficulty]algorithms.IAlgorithm
+	difficultyNames map[Difficulty]string
 }
 
-var algoMap = map[Difficulty]algorithms.IAlgorithm{
-	Hard: algorithms.NewNegaScout(),
+func NewAI() AI {
+	return AI{
+		algos: map[Difficulty]algorithms.IAlgorithm{
+			Hard: algorithms.NewNegaScout(),
+		},
+		difficultyNames: map[Difficulty]string{
+			Easy:   "Easy",
+			Medium: "Medium",
+			Hard:   "Hard",
+		},
+	}
 }
 
-func getAlgorithm(dif Difficulty) (algorithms.IAlgorithm, error) {
-	algo, ok := algoMap[dif]
+func (ai AI) getAlgorithm(dif Difficulty) (algorithms.IAlgorithm, error) {
+	algo, ok := ai.algos[dif]
 	if !ok {
-		difName, ok := difficultyNames[dif]
+		difName, ok := ai.difficultyNames[dif]
 		if !ok {
 			return nil, errors.Errorf("unknown difficulty code %v", dif)
 		}
@@ -37,42 +45,21 @@ func getAlgorithm(dif Difficulty) (algorithms.IAlgorithm, error) {
 	return algo, nil
 }
 
-type AIGame struct {
-	Game       game.Game
-	Difficulty Difficulty
-}
-
-func (aig *AIGame) MakeAIMove() error {
-	if aig.Game.IsOver() {
-		return nil
+func (ai AI) MakeAIMove(dif Difficulty, g game.Game) (game.Game, error) {
+	if g.IsOver() {
+		return g, nil
 	}
 
-	algo, err := getAlgorithm(aig.Difficulty)
+	algo, err := ai.getAlgorithm(dif)
 	if err != nil {
-		return errors.Wrap(err, "failed to get algorithm")
+		return g, errors.Wrap(err, "failed to get algorithm")
 	}
-	move, err := algo.GetNextMove(aig.Game)
+	move, err := algo.GetNextMove(g)
 	if err != nil {
-		return errors.Wrap(err, "failed to get next move")
+		return g, errors.Wrap(err, "failed to get next move")
 	}
-
-	aig.Game.SwapPlayers()
-	if err = aig.Game.MakeMove(move); err != nil {
-		return errors.Wrap(err, "failed to make move")
+	if err = g.MakeMove(move); err != nil {
+		return g, errors.Wrap(err, "failed to make move")
 	}
-	aig.Game.SwapPlayers()
-	return nil
-}
-
-func StartAIGame(dif Difficulty, player game.Mark) (AIGame, error) {
-	aiGame := AIGame{
-		Game:       game.NewGame(player),
-		Difficulty: dif,
-	}
-	if aiGame.Game.GetPlayer() != game.MarkX {
-		if err := aiGame.MakeAIMove(); err != nil {
-			return aiGame, errors.Wrap(err, "failed to play AI opponent")
-		}
-	}
-	return aiGame, nil
+	return g, nil
 }

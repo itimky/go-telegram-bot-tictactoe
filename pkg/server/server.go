@@ -1,33 +1,24 @@
 package server
 
 import (
-	"github.com/go-redis/redis/v8"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
 
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/ai"
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
-	"github.com/itimky/go-telegram-bot-tictactoe/pkg/server/storage"
+	"github.com/itimky/go-telegram-bot-tictactoe/pkg/session"
 )
 
 type Server struct {
-	bot         *tb.Bot
-	gameStorage storage.IGameStorage
+	bot            *tb.Bot
+	sessionService *session.Service
 }
 
 func NewServer(token string, redisClient *redis.Client) (*Server, error) {
-	var gameStorage storage.IGameStorage
-	if redisClient != nil {
-		gameStorage = storage.NewGameRedisStorage(redisClient)
-		log.Info("using redis game storage")
-	} else {
-		gameStorage = storage.NewGameAppStorage()
-		log.Info("using app game storage")
-	}
-
 	b, err := tb.NewBot(tb.Settings{
 		Token:  token,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
@@ -37,8 +28,8 @@ func NewServer(token string, redisClient *redis.Client) (*Server, error) {
 	}
 
 	server := Server{
-		bot:         b,
-		gameStorage: gameStorage,
+		bot:            b,
+		sessionService: session.NewService(redisClient),
 	}
 	b.Handle("/start", server.onStart)
 	b.Handle(tb.OnCallback, server.onCallback)
@@ -93,36 +84,25 @@ func (s *Server) startGame(msgID int, data string) (*tb.ReplyMarkup, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get mark from string")
 	}
-	aiGame, err := ai.StartAIGame(ai.Hard, playerMark)
+	g, err := s.sessionService.New(msgID, playerMark, ai.Hard)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to start AI game")
 	}
-	if err = s.gameStorage.Save(msgID, aiGame); err != nil {
-		return nil, errors.Wrap(err, "failed to save game")
-	}
 
-	return getGameMarkup(aiGame.Game), nil
+	return getGameMarkup(g), nil
 }
 
 func (s *Server) playRound(msgID int, data string) (*tb.ReplyMarkup, error) {
-	aiGame, err := s.gameStorage.Load(msgID)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load game")
-	}
 	move, err := GetMoveFromString(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse move")
 	}
-	if err := aiGame.Game.MakeMove(move); err != nil {
-		return nil, errors.Wrap(err, "failed to make move")
+	g, err := s.sessionService.Play(msgID, move)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to play")
 	}
-	if err = aiGame.MakeAIMove(); err != nil {
-		return nil, errors.Wrap(err, "failed to play AI opponent")
-	}
-	if err = s.gameStorage.Save(msgID, aiGame); err != nil {
-		return nil, errors.Wrap(err, "failed to save game")
-	}
-	return getGameMarkup(aiGame.Game), nil
+
+	return getGameMarkup(g), nil
 }
 
 func getChoosePlayerMarkup() *tb.ReplyMarkup {

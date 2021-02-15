@@ -91,8 +91,8 @@ func (g *Game) SwapPlayers() {
 	g.player, g.opponent = g.opponent, g.player
 }
 
-func (g *Game) MakeMove(c Move) error {
-	if err := g.board.PlaceMark(c.I, c.J, g.player); err != nil {
+func (g *Game) MakeMove(move Move) error {
+	if err := g.board.PlaceMark(move.I, move.J, g.player); err != nil {
 		return errors.Wrap(err, "failed to place mark")
 	}
 	return nil

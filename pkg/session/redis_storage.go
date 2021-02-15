@@ -1,4 +1,4 @@
-package storage
+package session
 
 import (
 	"context"
@@ -26,41 +26,42 @@ type gameContainer struct {
 	Player game.Mark  `json:"player"`
 }
 
-type aiGameContainer struct {
+type SessionContainer struct {
+	ID         int           `json:"id"`
 	Difficulty ai.Difficulty `json:"difficulty"`
 	Game       gameContainer `json:"game"`
+	Type       GameType      `json:"type"`
 }
 
-type GameRedisStorage struct {
+type SessionRedisStorage struct {
 	client *redis.Client
 }
 
-func (gs *GameRedisStorage) Load(msgID int) (ai.AIGame, error) {
+func (gs *SessionRedisStorage) Load(msgID int) (*session, error) {
 	log.Debug("Loading game ", msgID)
 	key := makeKey(strconv.Itoa(msgID))
 	val, err := gs.client.Get(context.Background(), key).Result()
-	g := ai.AIGame{}
 	switch err {
 	case nil:
 	case redis.Nil:
-		return g, errors.New("game not found")
+		return nil, errors.New("game not found")
 	default:
-		return g, errors.Wrap(err, "failed to hget game from redis")
+		return nil, errors.Wrap(err, "failed to hget game from redis")
 	}
 
-	g, err = unmarshalGameFromRedis([]byte(val))
+	session, err := unmarshalGameFromRedis([]byte(val))
 	if err != nil {
-		return g, errors.Wrap(err, "failed to unmarshal game from redis")
+		return nil, errors.Wrap(err, "failed to unmarshal game from redis")
 	}
 
-	return g, nil
+	return session, nil
 
 }
 
-func (gs *GameRedisStorage) Save(msgID int, g ai.AIGame) error {
-	log.Debug("Saving game ", msgID)
-	key := makeKey(strconv.Itoa(msgID))
-	val, err := marshalGameToRedis(g)
+func (gs *SessionRedisStorage) Save(session *session) error {
+	log.Debug("Saving session ", session.id)
+	key := makeKey(strconv.Itoa(session.id))
+	val, err := marshalGameToRedis(session)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal game")
 	}
@@ -71,12 +72,14 @@ func (gs *GameRedisStorage) Save(msgID int, g ai.AIGame) error {
 	return nil
 }
 
-func marshalGameToRedis(g ai.AIGame) ([]byte, error) {
-	container := aiGameContainer{
-		Difficulty: g.Difficulty,
+func marshalGameToRedis(session *session) ([]byte, error) {
+	container := SessionContainer{
+		ID:         session.id,
+		Difficulty: session.difficulty,
+		Type:       session.gameType,
 		Game: gameContainer{
-			Board:  g.Game.GetBoard(),
-			Player: g.Game.GetPlayer(),
+			Board:  session.game.GetBoard(),
+			Player: session.game.GetPlayer(),
 		},
 	}
 	val, err := json.Marshal(container)
@@ -87,22 +90,24 @@ func marshalGameToRedis(g ai.AIGame) ([]byte, error) {
 	return val, nil
 }
 
-func unmarshalGameFromRedis(data []byte) (ai.AIGame, error) {
-	container := aiGameContainer{}
-	aiGame := ai.AIGame{}
-
+func unmarshalGameFromRedis(data []byte) (*session, error) {
+	container := SessionContainer{}
 	if err := json.Unmarshal(data, &container); err != nil {
-		return aiGame, errors.Wrap(err, "failed to unmarshal redis data")
+		return nil, errors.Wrap(err, "failed to unmarshal redis data")
 	}
 	log.Debug("Unmarshaled game container: ", container)
 
-	aiGame.Game = game.ContinueGame(container.Game.Player, container.Game.Board)
-	aiGame.Difficulty = container.Difficulty
-	return aiGame, nil
+	session := session{
+		id:         container.ID,
+		game:       game.ContinueGame(container.Game.Player, container.Game.Board),
+		difficulty: container.Difficulty,
+		gameType:   container.Type,
+	}
+	return &session, nil
 }
 
-func NewGameRedisStorage(client *redis.Client) *GameRedisStorage {
-	return &GameRedisStorage{
+func NewSessionRedisStorage(client *redis.Client) *SessionRedisStorage {
+	return &SessionRedisStorage{
 		client: client,
 	}
 }
