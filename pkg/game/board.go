@@ -70,7 +70,18 @@ func (b *Board) GetLines() []Line {
 
 func (b *Board) LineCount() int {
 	n := len(b)
-	return 2*n*(n-2) + 2*(n-2)*(n-2)
+	/*
+		In the future board size could be > 3, but win condition would be the same:  line with 3 same marks in a row.
+		Rows, columns and diagonals with len = 3
+
+		• • • •		• • • •		• * • •		• • • •
+		* * * •		• * • •		• • * •		• • • *
+		• • • •		• * • •		• • • *		• • * •
+		• • • •		• * • •		• • • •		• * • •
+	*/
+	rowsAndCols := 2 * n * (n - 2)
+	diagonals := 2 * (n - 2) * (n - 2)
+	return rowsAndCols + diagonals
 }
 
 func (b *Board) Size() int {
