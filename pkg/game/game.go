@@ -1,7 +1,6 @@
 package game
 
 import (
-	log "github.com/sirupsen/logrus"
 	"math"
 
 	"github.com/pkg/errors"
@@ -21,10 +20,11 @@ const (
 )
 
 type Line [3]Mark
-type Board [3]Line
+type board [10][10]Mark
+type Board [][]Mark
 
 type Game struct {
-	board    Board
+	board    board
 	n        int
 	player   Mark
 	opponent Mark
@@ -38,37 +38,46 @@ func NewGame(player Mark, size int) Game {
 	}
 }
 
-func ContinueGame(player Mark, board Board, size int) Game {
+func ContinueGame(player Mark, brd Board, size int) Game {
+	b := board{}
+
+	for i, row := range brd {
+		for j, mark := range row {
+			b[i][j] = mark
+		}
+	}
+
 	return Game{
 		player:   player,
 		n:        size,
 		opponent: getOpponent(player),
-		board:    board,
+		board:    b,
 	}
 }
 
 func (g *Game) GetLines() []Line {
 	lines := make([]Line, 0, g.LineCount())
+	n := g.Size()
 	for _, row := range g.board {
-		for j := 0; j < g.n-2; j++ {
+		for j := 0; j < n-2; j++ {
 			lines = append(lines, Line{row[j], row[j+1], row[j+2]})
 		}
 	}
 
-	for j := 0; j < g.n; j++ {
-		for i := 0; i < g.n-2; i++ {
+	for j := 0; j < n; j++ {
+		for i := 0; i < n-2; i++ {
 			lines = append(lines, Line{g.board[i][j], g.board[i+1][j], g.board[i+2][j]})
 		}
 	}
 
-	for i := 0; i < g.n-2; i++ {
-		for j := 0; j < g.n-2; j++ {
+	for i := 0; i < n-2; i++ {
+		for j := 0; j < n-2; j++ {
 			lines = append(lines, Line{g.board[i][j], g.board[i+1][j+1], g.board[i+2][j+2]})
 		}
 	}
 
-	for i := 0; i < g.n-2; i++ {
-		for j := 2; j < g.n; j++ {
+	for i := 0; i < n-2; i++ {
+		for j := 2; j < n; j++ {
 			lines = append(lines, Line{g.board[i][j], g.board[i+1][j-1], g.board[i+2][j-2]})
 		}
 	}
@@ -103,7 +112,16 @@ func getOpponent(player Mark) Mark {
 }
 
 func (g *Game) GetBoard() Board {
-	return g.board
+	n := g.Size()
+	brd := make([][]Mark, 0, n)
+	for i := 0; i < n; i++ {
+		row := make([]Mark, 0, n)
+		for j := 0; j < n; j++ {
+			row = append(row, g.board[i][j])
+		}
+		brd = append(brd, row)
+	}
+	return brd
 }
 
 func (g *Game) GetPlayer() Mark {
@@ -112,8 +130,9 @@ func (g *Game) GetPlayer() Mark {
 
 func (g *Game) GetPossibleMoves() []Move {
 	moves := make([]Move, 0, g.SquareCount())
-	for i := range g.board {
-		for j := range g.board[i] {
+	n := g.Size()
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
 			if g.board[i][j] == MarkEmpty {
 				moves = append(moves, Move{I: i, J: j})
 			}
@@ -172,7 +191,6 @@ func (g *Game) IsOver() bool {
 	}
 	for _, line := range g.GetLines() {
 		if math.Abs(g.getLineScore(line)) == 100 {
-			log.Debug("Game over! Line: ", line)
 			return true
 		}
 	}

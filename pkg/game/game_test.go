@@ -8,7 +8,7 @@ import (
 func Test_GetLines(t *testing.T) {
 	game := Game{
 		n: 3,
-		board: Board{
+		board: board{
 			{1, 2, 0},
 			{0, 1, 2},
 			{1, 2, 1},
@@ -29,4 +29,17 @@ func Test_GetLines(t *testing.T) {
 		{0, 1, 1},
 	}
 	assert.Equal(t, expected, lines)
+}
+
+func Test_GetPossibleMoves(t *testing.T) {
+	game := Game{
+		n: 1,
+		board: board{
+			{0, 0, 0},
+			{0, 0, 0},
+			{0, 0, 0},
+		},
+	}
+	assert.Equal(t, []Move{{0, 0}}, game.GetPossibleMoves())
+
 }

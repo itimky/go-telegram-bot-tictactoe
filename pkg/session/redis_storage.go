@@ -22,9 +22,9 @@ func makeKey(key string) string {
 }
 
 type gameContainer struct {
-	Board  game.Board `json:"board"`
-	N      int        `json:"n"`
-	Player game.Mark  `json:"player"`
+	Board  [][]game.Mark `json:"board"`
+	N      int           `json:"n"`
+	Player game.Mark     `json:"player"`
 }
 
 type SessionContainer struct {
