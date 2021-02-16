@@ -24,14 +24,15 @@ type session struct {
 }
 
 type Service struct {
-	ai      ai.AI
-	storage ISessionStorage
+	ai                 ai.AI
+	gameSizeLineLenMap map[int]int
+	storage            ISessionStorage
 }
 
-func (s *Service) New(sessionID int, player game.Mark, dif ai.Difficulty) (game.Game, error) {
+func (s *Service) New(sessionID int, player game.Mark, dif ai.Difficulty, size int) (game.Game, error) {
 	session := &session{
 		id:         sessionID,
-		game:       game.NewGame(player, 3),
+		game:       game.NewGame(player, size, s.gameSizeLineLenMap[size]),
 		gameType:   GameTypeVersusAI,
 		difficulty: dif,
 	}
@@ -89,8 +90,21 @@ func NewService(redisClient *redis.Client) *Service {
 		s = NewInMemStorage()
 		log.Info("using in-mem session storage")
 	}
+
+	gameSizeLineLenMap := map[int]int{
+		3:  3,
+		4:  4,
+		5:  4,
+		6:  4,
+		7:  5,
+		8:  5,
+		9:  5,
+		10: 6,
+	}
+
 	return &Service{
-		ai:      ai.NewAI(),
-		storage: s,
+		ai:                 ai.NewAI(),
+		gameSizeLineLenMap: gameSizeLineLenMap,
+		storage:            s,
 	}
 }

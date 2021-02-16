@@ -84,7 +84,7 @@ func (s *Server) startGame(msgID int, data string) (*tb.ReplyMarkup, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get mark from string")
 	}
-	g, err := s.sessionService.New(msgID, playerMark, ai.DifficultyHard)
+	g, err := s.sessionService.New(msgID, playerMark, ai.DifficultyHard, 3)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to start AI game")
 	}
@@ -100,6 +100,9 @@ func (s *Server) playRound(msgID int, data string) (*tb.ReplyMarkup, error) {
 	g, err := s.sessionService.Play(msgID, move)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to play")
+	}
+	if g.IsOver() {
+		log.Debug("Game Over!")
 	}
 
 	return getGameMarkup(g), nil

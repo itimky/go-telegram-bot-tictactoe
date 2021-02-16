@@ -19,7 +19,7 @@ const (
 	MarkO     Mark = 2
 )
 
-type Line [3]Mark
+type Line []Mark
 type board [10][10]Mark
 
 type Board [][]Mark
@@ -27,19 +27,21 @@ type Board [][]Mark
 type Game struct {
 	board    board
 	n        int
+	lineLen  int
 	player   Mark
 	opponent Mark
 }
 
-func NewGame(player Mark, size int) Game {
+func NewGame(player Mark, size int, lineLen int) Game {
 	return Game{
 		player:   player,
 		n:        size,
+		lineLen:  lineLen,
 		opponent: getOpponent(player),
 	}
 }
 
-func ContinueGame(player Mark, brd Board, size int) Game {
+func ContinueGame(player Mark, brd Board, size int, lineLen int) Game {
 	b := board{}
 
 	for i, row := range brd {
@@ -51,52 +53,65 @@ func ContinueGame(player Mark, brd Board, size int) Game {
 	return Game{
 		player:   player,
 		n:        size,
+		lineLen:  lineLen,
 		opponent: getOpponent(player),
 		board:    b,
 	}
 }
 
 func (g *Game) GetLines() []Line {
+	// TODO: optimize
 	lines := make([]Line, 0, g.LineCount())
 	n := g.Size()
-	for _, row := range g.board {
-		for j := 0; j < n-2; j++ {
-			lines = append(lines, Line{row[j], row[j+1], row[j+2]})
+	lineLen := g.LineLen()
+	linesInRow := n - lineLen + 1
+	for i := 0; i < n; i++ {
+		for j := 0; j < linesInRow; j++ {
+			line := make(Line, 0, lineLen)
+			for k := 0; k < lineLen; k++ {
+				line = append(line, g.board[i][j+k])
+			}
+			lines = append(lines, line)
 		}
 	}
 
 	for j := 0; j < n; j++ {
-		for i := 0; i < n-2; i++ {
-			lines = append(lines, Line{g.board[i][j], g.board[i+1][j], g.board[i+2][j]})
+		for i := 0; i < linesInRow; i++ {
+			line := make(Line, 0, lineLen)
+			for k := 0; k < lineLen; k++ {
+				line = append(line, g.board[i+k][j])
+			}
+			lines = append(lines, line)
 		}
 	}
 
-	for i := 0; i < n-2; i++ {
-		for j := 0; j < n-2; j++ {
-			lines = append(lines, Line{g.board[i][j], g.board[i+1][j+1], g.board[i+2][j+2]})
+	for i := 0; i < linesInRow; i++ {
+		for j := 0; j < linesInRow; j++ {
+			line := make(Line, 0, lineLen)
+			for k := 0; k < lineLen; k++ {
+				line = append(line, g.board[i+k][j+k])
+			}
+			lines = append(lines, line)
 		}
 	}
 
-	for i := 0; i < n-2; i++ {
-		for j := 2; j < n; j++ {
-			lines = append(lines, Line{g.board[i][j], g.board[i+1][j-1], g.board[i+2][j-2]})
+	for i := 0; i < linesInRow; i++ {
+		for j := lineLen - 1; j < n; j++ {
+			line := make(Line, 0, lineLen)
+			for k := 0; k < lineLen; k++ {
+				line = append(line, g.board[i+k][j-k])
+			}
+			lines = append(lines, line)
 		}
 	}
 	return lines
 }
 
 func (g *Game) LineCount() int {
-	/*
-		In the future board size could be > 3, but win condition would be the same:  line with 3 same marks in a row.
-		Rows, columns and diagonals with len = 3
-
-		• • • •		• • • •		• * • •		• • • •
-		* * * •		• * • •		• • * •		• • • *
-		• • • •		• * • •		• • • *		• • * •
-		• • • •		• * • •		• • • •		• * • •
-	*/
-	rowsAndCols := 2 * g.n * (g.n - 2)
-	diagonals := 2 * (g.n - 2) * (g.n - 2)
+	n := g.Size()
+	linesInRow := n - g.LineLen() + 1
+	rowsAndCols := 2 * n * linesInRow
+	diagonals := 2 * linesInRow * linesInRow
 	return rowsAndCols + diagonals
 }
 
@@ -106,6 +121,10 @@ func (g *Game) SquareCount() int {
 
 func (g *Game) Size() int {
 	return g.n
+}
+
+func (g *Game) LineLen() int {
+	return g.lineLen
 }
 
 func getOpponent(player Mark) Mark {
@@ -143,26 +162,30 @@ func (g *Game) GetPossibleMoves() []Move {
 }
 
 func (g *Game) getLineScore(line Line) float64 {
-	opponentPoints := 0.
-	playerPoints := 0.
+	var opponentPoints float64
+	var playerPoints float64
 	var prevValue Mark
 	for _, value := range line {
-		if value == g.opponent {
-			if value == prevValue {
-				opponentPoints *= 10
-			} else {
-				opponentPoints += 1
-			}
-		} else if value == g.player {
+		if value == g.player {
 			if value == prevValue {
 				playerPoints *= 10
 			} else {
 				playerPoints += 1
 			}
+		} else {
+			if value == prevValue {
+				opponentPoints *= 10
+			} else {
+				opponentPoints += 1
+			}
 		}
 		prevValue = value
 	}
 	return playerPoints - opponentPoints
+}
+
+func (g *Game) WinScore() float64 {
+	return math.Pow(10, float64(g.lineLen-1))
 }
 
 func (g *Game) GetScore() float64 {
@@ -187,11 +210,12 @@ func (g *Game) MakeMove(move Move) error {
 
 func (g *Game) IsOver() bool {
 	moves := g.GetPossibleMoves()
+	winScore := g.WinScore()
 	if len(moves) == 0 {
 		return true
 	}
 	for _, line := range g.GetLines() {
-		if math.Abs(g.getLineScore(line)) == 100 {
+		if math.Abs(g.getLineScore(line)) == winScore {
 			return true
 		}
 	}
