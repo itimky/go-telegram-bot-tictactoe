@@ -3,7 +3,9 @@ package session
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -17,14 +19,26 @@ import (
 const gameRedisStorageKeyPrefix = "ttt_game"
 const gameRedisStorageTTL = 2 * (24 * time.Hour) // 2 Days
 
+type Row []byte
+
+func (r Row) MarshalJSON() ([]byte, error) {
+	var result string
+	if r == nil {
+		return nil, errors.Errorf("board row cannot be nil")
+	} else {
+		result = strings.Join(strings.Fields(fmt.Sprintf("%d", r)), ",")
+	}
+	return []byte(result), nil
+}
+
 func makeKey(key string) string {
 	return gameRedisStorageKeyPrefix + "_" + key
 }
 
 type gameContainer struct {
-	Board  [][]game.Mark `json:"board"`
-	N      int           `json:"n"`
-	Player game.Mark     `json:"player"`
+	Board  []Row     `json:"board"`
+	N      int       `json:"n"`
+	Player game.Mark `json:"player"`
 }
 
 type SessionContainer struct {
@@ -74,13 +88,23 @@ func (gs *SessionRedisStorage) Save(session *session) error {
 }
 
 func marshalGameToRedis(session *session) ([]byte, error) {
+	n := session.game.Size()
+	rows := make([]Row, 0, n)
+	for _, gameRow := range session.game.GetBoard() {
+		row := make(Row, 0, n)
+		for _, mark := range gameRow {
+			row = append(row, byte(mark))
+		}
+		rows = append(rows, row)
+	}
+
 	container := SessionContainer{
 		ID:         session.id,
 		Difficulty: session.difficulty,
 		Type:       session.gameType,
 		Game: gameContainer{
-			Board:  session.game.GetBoard(),
-			N:      session.game.Size(),
+			Board:  rows,
+			N:      n,
 			Player: session.game.GetPlayer(),
 		},
 	}
@@ -99,9 +123,17 @@ func unmarshalGameFromRedis(data []byte) (*session, error) {
 	}
 	log.Debug("Unmarshaled game container: ", container)
 
+	board := make(game.Board, 0, container.Game.N)
+	for _, row := range container.Game.Board {
+		markRow := make([]game.Mark, 0, container.Game.N)
+		for _, m := range row {
+			markRow = append(markRow, game.Mark(m))
+		}
+		board = append(board, markRow)
+	}
 	session := session{
 		id:         container.ID,
-		game:       game.ContinueGame(container.Game.Player, container.Game.Board, container.Game.N),
+		game:       game.ContinueGame(container.Game.Player, board, container.Game.N),
 		difficulty: container.Difficulty,
 		gameType:   container.Type,
 	}

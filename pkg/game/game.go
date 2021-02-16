@@ -21,6 +21,7 @@ const (
 
 type Line [3]Mark
 type board [10][10]Mark
+
 type Board [][]Mark
 
 type Game struct {
