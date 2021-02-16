@@ -9,11 +9,11 @@ import (
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 )
 
-type GameType byte
+type GameType string
 
 const (
-	GameTypeVersusAI = iota
-	GameTypeVersusHuman
+	GameTypeVersusAI    = "vs_ai"
+	GameTypeVersusHuman = "vs_human"
 )
 
 type session struct {

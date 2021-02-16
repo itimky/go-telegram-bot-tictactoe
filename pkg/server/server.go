@@ -84,7 +84,7 @@ func (s *Server) startGame(msgID int, data string) (*tb.ReplyMarkup, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get mark from string")
 	}
-	g, err := s.sessionService.New(msgID, playerMark, ai.Hard)
+	g, err := s.sessionService.New(msgID, playerMark, ai.DifficultyHard)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to start AI game")
 	}

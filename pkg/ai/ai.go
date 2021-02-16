@@ -7,28 +7,22 @@ import (
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 )
 
-type Difficulty byte
+type Difficulty string
 
 const (
-	Easy   = 0
-	Medium = 1
-	Hard   = 2
+	DifficultyEasy   Difficulty = "easy"
+	DifficultyMedium Difficulty = "medium"
+	DifficultyHard   Difficulty = "hard"
 )
 
 type AI struct {
-	algos           map[Difficulty]algorithms.IAlgorithm
-	difficultyNames map[Difficulty]string
+	algos map[Difficulty]algorithms.IAlgorithm
 }
 
 func NewAI() AI {
 	return AI{
 		algos: map[Difficulty]algorithms.IAlgorithm{
-			Hard: algorithms.NewNegaScout(),
-		},
-		difficultyNames: map[Difficulty]string{
-			Easy:   "Easy",
-			Medium: "Medium",
-			Hard:   "Hard",
+			DifficultyHard: algorithms.NewNegaScout(),
 		},
 	}
 }
@@ -36,11 +30,7 @@ func NewAI() AI {
 func (ai AI) getAlgorithm(dif Difficulty) (algorithms.IAlgorithm, error) {
 	algo, ok := ai.algos[dif]
 	if !ok {
-		difName, ok := ai.difficultyNames[dif]
-		if !ok {
-			return nil, errors.Errorf("unknown difficulty code %v", dif)
-		}
-		return nil, errors.Errorf("%v difficulty is not supported", difName)
+		return nil, errors.Errorf("%v difficulty is not supported", dif)
 	}
 	return algo, nil
 }
