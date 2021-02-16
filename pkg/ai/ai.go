@@ -14,17 +14,25 @@ const (
 	DifficultyEasy   Difficulty = "easy"
 	DifficultyMedium Difficulty = "medium"
 	DifficultyHard   Difficulty = "hard"
+	DifficultyUnfair Difficulty = "unfair"
 )
 
 type AI struct {
 	algos map[Difficulty]algorithms.IAlgorithm
 }
 
+func maxDepthPercent(percent float32) byte {
+	return byte(float32(algorithms.NegaScoutMaxDepth) * percent)
+}
+
 func NewAI() AI {
 	return AI{
 		algos: map[Difficulty]algorithms.IAlgorithm{
 			DifficultyNovice: algorithms.NewRandom(),
-			DifficultyHard:   algorithms.NewNegaScout(),
+			DifficultyEasy:   algorithms.NewNegaScout(maxDepthPercent(0.2)),
+			DifficultyMedium: algorithms.NewNegaScout(maxDepthPercent(0.3)),
+			DifficultyHard:   algorithms.NewNegaScout(maxDepthPercent(0.5)),
+			DifficultyUnfair: algorithms.NewNegaScout(algorithms.NegaScoutMaxDepth),
 		},
 	}
 }

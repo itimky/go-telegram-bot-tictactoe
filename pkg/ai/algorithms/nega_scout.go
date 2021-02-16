@@ -11,7 +11,7 @@ import (
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 )
 
-const maxDepth byte = 10
+const NegaScoutMaxDepth byte = 10
 
 type MoveCache struct {
 	mx    sync.RWMutex
@@ -42,9 +42,9 @@ type NegaScout struct {
 	nextMoveCache *MoveCache
 }
 
-func NewNegaScout() NegaScout {
+func NewNegaScout(depth byte) NegaScout {
 	return NegaScout{
-		initialDepth:  maxDepth,
+		initialDepth:  depth,
 		nextMoveCache: NewMoveCache(),
 	}
 }
@@ -68,7 +68,6 @@ func (ns NegaScout) getNextMove(g game.Game) (game.Move, error) {
 	resultMove := possibleMoves[0]
 	alpha := math.Inf(-1)
 	beta := math.Inf(1)
-	depth := maxDepth
 
 	for _, move := range possibleMoves {
 		possibleGame := g
@@ -76,7 +75,7 @@ func (ns NegaScout) getNextMove(g game.Game) (game.Move, error) {
 			return resultMove, errors.Wrap(err, "failed to calc next move")
 		}
 		possibleGame.SwapPlayers()
-		moveAlpha, err := ns.getBestScoreRecursive(possibleGame, depth-1, -beta, -alpha)
+		moveAlpha, err := ns.getBestScoreRecursive(possibleGame, ns.initialDepth-1, -beta, -alpha)
 		if err != nil {
 			return resultMove, errors.Wrap(err, "failed to calc further steps")
 		}
