@@ -10,6 +10,7 @@ import (
 type Difficulty string
 
 const (
+	DifficultyNovice Difficulty = "novice"
 	DifficultyEasy   Difficulty = "easy"
 	DifficultyMedium Difficulty = "medium"
 	DifficultyHard   Difficulty = "hard"
@@ -22,7 +23,8 @@ type AI struct {
 func NewAI() AI {
 	return AI{
 		algos: map[Difficulty]algorithms.IAlgorithm{
-			DifficultyHard: algorithms.NewNegaScout(),
+			DifficultyNovice: algorithms.NewRandom(),
+			DifficultyHard:   algorithms.NewNegaScout(),
 		},
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
 )
 
-const initialDepth byte = 8
+const maxDepth byte = 10
 
 type MoveCache struct {
 	mx    sync.RWMutex
@@ -44,7 +44,7 @@ type NegaScout struct {
 
 func NewNegaScout() NegaScout {
 	return NegaScout{
-		initialDepth:  initialDepth,
+		initialDepth:  maxDepth,
 		nextMoveCache: NewMoveCache(),
 	}
 }
@@ -68,7 +68,7 @@ func (ns NegaScout) getNextMove(g game.Game) (game.Move, error) {
 	resultMove := possibleMoves[0]
 	alpha := math.Inf(-1)
 	beta := math.Inf(1)
-	depth := initialDepth
+	depth := maxDepth
 
 	for _, move := range possibleMoves {
 		possibleGame := g
