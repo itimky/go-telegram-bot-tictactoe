@@ -221,3 +221,18 @@ func (g *Game) IsOver() bool {
 	}
 	return false
 }
+
+func (g *Game) RotateLeft() {
+	n := g.Size()
+
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			g.board[i][j], g.board[j][i] = g.board[j][i], g.board[i][j]
+		}
+	}
+
+	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+		g.board[i], g.board[j] = g.board[j], g.board[i]
+	}
+
+}

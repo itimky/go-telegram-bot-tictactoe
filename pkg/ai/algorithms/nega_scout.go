@@ -2,7 +2,6 @@ package algorithms
 
 import (
 	"math"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -13,39 +12,17 @@ import (
 
 const NegaScoutMaxDepth byte = 10
 
-type MoveCache struct {
-	mx    sync.RWMutex
-	cache map[game.Game]game.Move
-}
-
-func (mc *MoveCache) Store(g game.Game, c game.Move) {
-	mc.mx.Lock()
-	defer mc.mx.Unlock()
-	mc.cache[g] = c
-}
-
-func (mc *MoveCache) Load(g game.Game) (game.Move, bool) {
-	mc.mx.RLock()
-	defer mc.mx.RUnlock()
-	c, ok := mc.cache[g]
-	return c, ok
-}
-
-func NewMoveCache() *MoveCache {
-	return &MoveCache{
-		cache: make(map[game.Game]game.Move),
-	}
-}
-
 type NegaScout struct {
 	initialDepth  byte
 	nextMoveCache *MoveCache
+	scoreCache    *ScoreCache
 }
 
 func NewNegaScout(depth byte) NegaScout {
 	return NegaScout{
 		initialDepth:  depth,
 		nextMoveCache: NewMoveCache(),
+		scoreCache:    NewScoreCache(),
 	}
 }
 
@@ -91,8 +68,14 @@ func (ns NegaScout) getNextMove(g game.Game) (game.Move, error) {
 }
 
 func (ns NegaScout) getBestScoreRecursive(g game.Game, depth byte, alpha, beta float64) (float64, error) {
+	if score, ok := ns.scoreCache.Load(g); ok {
+		return score, nil
+	}
+
 	if depth == 0 || g.IsOver() {
-		return g.GetScore(), nil
+		score := g.GetScore()
+		ns.scoreCache.Store(g, score)
+		return score, nil
 	}
 
 	bestValue := math.Inf(-1)
@@ -117,5 +100,6 @@ func (ns NegaScout) getBestScoreRecursive(g game.Game, depth byte, alpha, beta f
 		}
 	}
 
+	ns.scoreCache.Store(g, bestValue)
 	return bestValue, nil
 }
