@@ -52,14 +52,14 @@ func (ai AI) MakeAIMove(dif Difficulty, g game.Game) (game.Game, error) {
 
 	algo, err := ai.getAlgorithm(dif)
 	if err != nil {
-		return g, errors.Wrap(err, "failed to get algorithm")
+		return g, err
 	}
 	move, err := algo.GetNextMove(g)
 	if err != nil {
-		return g, errors.Wrap(err, "failed to get next move")
+		return g, err
 	}
 	if err = g.MakeMove(move); err != nil {
-		return g, errors.Wrap(err, "failed to make move")
+		return g, err
 	}
 	return g, nil
 }

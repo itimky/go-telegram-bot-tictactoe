@@ -4,7 +4,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/game"
@@ -49,12 +48,12 @@ func (ns NegaScout) getNextMove(g game.Game) (game.Move, error) {
 	for _, move := range possibleMoves {
 		possibleGame := g
 		if err := possibleGame.MakeMove(move); err != nil {
-			return resultMove, errors.Wrap(err, "failed to calc next move")
+			return resultMove, err
 		}
 		possibleGame.SwapPlayers()
 		moveAlpha, err := ns.getBestScoreRecursive(possibleGame, ns.initialDepth-1, -beta, -alpha)
 		if err != nil {
-			return resultMove, errors.Wrap(err, "failed to calc further steps")
+			return resultMove, err
 		}
 		moveAlpha = -moveAlpha
 		if alpha < moveAlpha {
@@ -82,13 +81,13 @@ func (ns NegaScout) getBestScoreRecursive(g game.Game, depth byte, alpha, beta f
 	for _, move := range g.GetPossibleMoves() {
 		possibleGame := g
 		if err := possibleGame.MakeMove(move); err != nil {
-			return bestValue, errors.Wrap(err, "failed to calc next move")
+			return bestValue, err
 		}
 		possibleGame.SwapPlayers()
 
 		moveAlpha, err := ns.getBestScoreRecursive(possibleGame, depth-1, -beta, -alpha)
 		if err != nil {
-			return bestValue, errors.Wrap(err, "failed to calc further steps")
+			return bestValue, err
 		}
 		moveAlpha = -moveAlpha
 		bestValue = math.Max(bestValue, moveAlpha)

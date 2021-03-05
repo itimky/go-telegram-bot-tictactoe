@@ -68,13 +68,13 @@ func (s *Server) handleCallback(msgID int, data string) (*tb.ReplyMarkup, error)
 	if len(data) == 1 {
 		markup, err := s.startGame(msgID, data)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to start game")
+			return nil, err
 		}
 		return markup, err
 	}
 	markup, err := s.playRound(msgID, data)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to play round")
+		return nil, err
 	}
 	return markup, nil
 }
@@ -82,11 +82,11 @@ func (s *Server) handleCallback(msgID int, data string) (*tb.ReplyMarkup, error)
 func (s *Server) startGame(msgID int, data string) (*tb.ReplyMarkup, error) {
 	playerMark, err := GetMarkFromString(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get mark from string")
+		return nil, err
 	}
 	g, err := s.sessionService.New(msgID, playerMark, ai.DifficultyHard, 3)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to start AI game")
+		return nil, err
 	}
 
 	return getGameMarkup(g), nil
@@ -95,11 +95,11 @@ func (s *Server) startGame(msgID int, data string) (*tb.ReplyMarkup, error) {
 func (s *Server) playRound(msgID int, data string) (*tb.ReplyMarkup, error) {
 	move, err := GetMoveFromString(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse move")
+		return nil, err
 	}
 	g, err := s.sessionService.Play(msgID, move)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to play")
+		return nil, err
 	}
 	if g.IsOver() {
 		log.Debug("Game Over!")

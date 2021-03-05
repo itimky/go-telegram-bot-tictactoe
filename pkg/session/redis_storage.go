@@ -24,7 +24,7 @@ type Row []byte
 func (r Row) MarshalJSON() ([]byte, error) {
 	var result string
 	if r == nil {
-		return nil, errors.Errorf("board row cannot be nil")
+		return nil, errors.New("board row cannot be nil")
 	} else {
 		result = strings.Join(strings.Fields(fmt.Sprintf("%d", r)), ",")
 	}
@@ -67,7 +67,7 @@ func (gs *SessionRedisStorage) Load(msgID int) (*session, error) {
 
 	session, err := unmarshalGameFromRedis([]byte(val))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal game from redis")
+		return nil, err
 	}
 
 	return session, nil
@@ -79,7 +79,7 @@ func (gs *SessionRedisStorage) Save(session *session) error {
 	key := makeKey(strconv.Itoa(session.id))
 	val, err := marshalGameToRedis(session)
 	if err != nil {
-		return errors.Wrap(err, "failed to marshal game")
+		return err
 	}
 	err = gs.client.Set(context.Background(), key, val, gameRedisStorageTTL).Err()
 	if err != nil {
@@ -133,13 +133,13 @@ func unmarshalGameFromRedis(data []byte) (*session, error) {
 		}
 		board = append(board, markRow)
 	}
-	session := session{
+	sess := session{
 		id:         container.ID,
 		game:       game.ContinueGame(container.Game.Player, board, container.Game.N, container.Game.LineLen),
 		difficulty: container.Difficulty,
 		gameType:   container.Type,
 	}
-	return &session, nil
+	return &sess, nil
 }
 
 func NewSessionRedisStorage(client *redis.Client) *SessionRedisStorage {

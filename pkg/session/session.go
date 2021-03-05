@@ -2,7 +2,6 @@ package session
 
 import (
 	"github.com/go-redis/redis/v8"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/itimky/go-telegram-bot-tictactoe/pkg/ai"
@@ -40,7 +39,7 @@ func (s *Service) New(sessionID int, player game.Mark, dif ai.Difficulty, size i
 		if session.game.GetPlayer() == game.MarkO {
 			g, err := s.ai.MakeAIMove(session.difficulty, session.game)
 			if err != nil {
-				return g, errors.Wrap(err, "failed to make ai move")
+				return g, err
 			}
 			session.game = g
 			session.game.SwapPlayers()
@@ -48,7 +47,7 @@ func (s *Service) New(sessionID int, player game.Mark, dif ai.Difficulty, size i
 	}
 
 	if err := s.storage.Save(session); err != nil {
-		return session.game, errors.Wrap(err, "failed to save session")
+		return session.game, err
 	}
 
 	return session.game, nil
@@ -57,25 +56,25 @@ func (s *Service) New(sessionID int, player game.Mark, dif ai.Difficulty, size i
 func (s *Service) Play(sessionID int, move game.Move) (game.Game, error) {
 	session, err := s.storage.Load(sessionID)
 	if err != nil {
-		return game.Game{}, errors.Wrap(err, "failed to load session")
+		return game.Game{}, err
 	}
 
 	if err = session.game.MakeMove(move); err != nil {
-		return session.game, errors.Wrap(err, "failed to make move")
+		return session.game, err
 	}
 
 	if session.gameType == GameTypeVersusAI {
 		session.game.SwapPlayers()
 		g, err := s.ai.MakeAIMove(session.difficulty, session.game)
 		if err != nil {
-			return g, errors.Wrap(err, "failed to make ai move")
+			return g, err
 		}
 		session.game = g
 		session.game.SwapPlayers()
 	}
 
 	if err = s.storage.Save(session); err != nil {
-		return session.game, errors.Wrap(err, "failed to save session")
+		return session.game, err
 	}
 
 	return session.game, nil
